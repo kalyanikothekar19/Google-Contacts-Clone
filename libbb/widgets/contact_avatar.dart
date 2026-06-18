@@ -1,8 +1,9 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 
 class ContactAvatar extends StatelessWidget {
   final String name;
-  final String? photoPath; 
+  final String? photoPath;
   final double radius;
 
   const ContactAvatar({
@@ -21,11 +22,10 @@ class ContactAvatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (photoPath != null && photoPath!.startsWith('http')) {
+    if (photoPath != null && File(photoPath!).existsSync()) {
       return CircleAvatar(
         radius: radius,
-        backgroundColor: Colors.deepPurple.shade100,
-        backgroundImage: NetworkImage(photoPath!),
+        backgroundImage: FileImage(File(photoPath!)),
       );
     }
 

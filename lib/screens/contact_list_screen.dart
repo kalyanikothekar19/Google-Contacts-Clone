@@ -25,6 +25,28 @@ class _ContactListScreenState extends State<ContactListScreen> {
     context.read<ContactBloc>().add(LoadContacts());
   }
 
+  // Group contacts alphabetically
+  Map<String, List<dynamic>> groupContactsByLetter(List<dynamic> contacts) {
+    Map<String, List<dynamic>> grouped = {};
+
+    for (var contact in contacts) {
+      String letter = contact.name[0].toUpperCase();
+      if (!grouped.containsKey(letter)) {
+        grouped[letter] = [];
+      }
+      grouped[letter]!.add(contact);
+    }
+
+    // Sort by letter
+    var sortedKeys = grouped.keys.toList()..sort();
+    Map<String, List<dynamic>> sortedGrouped = {};
+    for (var key in sortedKeys) {
+      sortedGrouped[key] = grouped[key]!;
+    }
+
+    return sortedGrouped;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -38,10 +60,31 @@ class _ContactListScreenState extends State<ContactListScreen> {
             child: TextField(
               decoration: InputDecoration(
                 hintText: 'Search contacts',
-                prefixIcon: const Icon(Icons.search),
+                hintStyle: const TextStyle(
+                  fontSize: 18,
+                ),
+                prefixIcon: Padding(
+                  padding: const EdgeInsets.all(10.0),
+                  child: const Icon(
+                    Icons.search,
+                    size: 27,
+                  ),
+                ),
+                suffixIcon: Padding(
+                  padding: const EdgeInsets.all(10.0),
+                  child: CircleAvatar(
+                    backgroundColor: Colors.purple.shade700,
+                    foregroundColor: Colors.white,
+                    child: const Text(
+                      'K',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ),
                 filled: true,
+                fillColor: const Color.fromARGB(255, 241, 235, 235),
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(50),
                   borderSide: BorderSide.none,
                 ),
               ),
@@ -68,58 +111,125 @@ class _ContactListScreenState extends State<ContactListScreen> {
 
                   if (searchQuery.isNotEmpty) {
                     contacts = contacts
-                        .where((c) => c.name.toLowerCase().contains(searchQuery))
+                        .where(
+                            (c) => c.name.toLowerCase().contains(searchQuery))
                         .toList();
                   }
 
                   if (contacts.isEmpty) {
-                    return const Center(child: Text('No contacts yet. Tap + to add one.'));
+                    return const Center(
+                        child: Text('No contacts yet. Tap + to add one.'));
                   }
 
-                  return ListView.builder(
-                    itemCount: contacts.length,
-                    itemBuilder: (context, index) {
-                      final contact = contacts[index];
-                      return Dismissible(
-                        key: ValueKey(contact.id),
-                        direction: DismissDirection.endToStart,
-                        background: Container(
-                          color: Colors.red,
-                          alignment: Alignment.centerRight,
-                          padding: const EdgeInsets.only(right: 20),
-                          child: const Icon(Icons.delete, color: Colors.white),
+                  var groupedContacts = groupContactsByLetter(contacts);
+                  var letters = groupedContacts.keys.toList();
+
+                  List<Widget> listItems = [];
+                  for (String letter in letters) {
+                    listItems.add(
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                        child: Text(
+                          letter,
+                          style:
+                              Theme.of(context).textTheme.titleMedium?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.grey[600],
+                                  ),
                         ),
-                        confirmDismiss: (_) => showDeleteConfirmation(context, contact.name),
-                        onDismissed: (_) {
-                          context.read<ContactBloc>().add(DeleteContact(contact.id!));
-                        },
-                        child: ListTile(
-                          leading: ContactAvatar(name: contact.name, photoPath: contact.photoPath),
-                          title: Text(contact.name),
-                          subtitle: Text(contact.phone),
-                          trailing: IconButton(
-                            icon: Icon(
-                              contact.isFavorite ? Icons.star : Icons.star_border,
-                              color: contact.isFavorite ? Colors.amber : Colors.grey,
+                      ),
+                    );
+
+                    for (var contact in groupedContacts[letter]!) {
+                      listItems.add(
+                        Dismissible(
+                          key: ValueKey(contact.id),
+                          direction: DismissDirection.endToStart,
+                          background: Container(
+                            margin: const EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: Colors.red,
+                              borderRadius: BorderRadius.circular(12),
                             ),
-                            onPressed: () {
-                              context.read<ContactBloc>().add(ToggleFavorite(contact));
-                            },
+                            alignment: Alignment.centerRight,
+                            padding: const EdgeInsets.only(right: 20),
+                            child:
+                                const Icon(Icons.delete, color: Colors.white),
                           ),
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => ContactProfileScreen(contact: contact),
-                              ),
-                            );
+                          confirmDismiss: (_) =>
+                              showDeleteConfirmation(context, contact.name),
+                          onDismissed: (_) {
+                            context
+                                .read<ContactBloc>()
+                                .add(DeleteContact(contact.id!));
                           },
+                          child: Container(
+                            margin: const EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(12),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.1),
+                                  blurRadius: 4,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            child: ListTile(
+                              contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 16, vertical: 8),
+                              leading: ContactAvatar(
+                                name: contact.name,
+                                photoPath: contact.photoPath,
+                              ),
+                              title: Text(
+                                contact.name,
+                                style: const TextStyle(
+                                  color: Colors.black,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              subtitle: Text(
+                                contact.phone,
+                                style: TextStyle(
+                                  color: Colors.grey[600],
+                                ),
+                              ),
+                              trailing: IconButton(
+                                icon: Icon(
+                                  contact.isFavorite
+                                      ? Icons.star
+                                      : Icons.star_border,
+                                  color: contact.isFavorite
+                                      ? Colors.amber
+                                      : Colors.grey,
+                                ),
+                                onPressed: () {
+                                  context
+                                      .read<ContactBloc>()
+                                      .add(ToggleFavorite(contact));
+                                },
+                              ),
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) =>
+                                        ContactProfileScreen(contact: contact),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
                         ),
                       );
-                    },
-                  );
+                    }
+                  }
+                  return ListView(children: listItems);
                 }
-
                 return const SizedBox();
               },
             ),

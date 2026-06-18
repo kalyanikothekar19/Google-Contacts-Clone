@@ -20,23 +20,20 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: IndexedStack(
-        index: _currentIndex,
-        children: _tabs,
-      ),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _currentIndex,
-        onDestinationSelected: (index) {
+      body: _tabs[_currentIndex],
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: _currentIndex,
+        onTap: (index) {
           setState(() {
             _currentIndex = index;
           });
         },
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.person),
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.contacts),
             label: 'Contacts',
           ),
-          NavigationDestination(
+          BottomNavigationBarItem(
             icon: Icon(Icons.star),
             label: 'Favorites',
           ),

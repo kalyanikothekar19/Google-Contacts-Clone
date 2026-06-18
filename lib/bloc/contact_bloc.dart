@@ -1,16 +1,18 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../db/db_helper.dart';
+import '../repository/contact_repository.dart';
+import '../repository/storage_helper.dart';
 import 'contact_event.dart';
 import 'contact_state.dart';
 
 class ContactBloc extends Bloc<ContactEvent, ContactState> {
-  final DBHelper dbHelper = DBHelper();
+  final ContactRepository repo = ContactRepository();
+  final StorageHelper storageHelper = StorageHelper();
 
   ContactBloc() : super(ContactLoading()) {
     on<LoadContacts>((event, emit) async {
       emit(ContactLoading());
       try {
-        final contacts = await dbHelper.getContacts();
+        final contacts = await repo.getContacts();
         emit(ContactLoaded(contacts));
       } catch (e) {
         emit(ContactError('Could not load contacts'));
@@ -18,27 +20,35 @@ class ContactBloc extends Bloc<ContactEvent, ContactState> {
     });
 
     on<AddContact>((event, emit) async {
-      await dbHelper.insertContact(event.contact);
-      final contacts = await dbHelper.getContacts();
+      final newId = await repo.insertContact(event.contact);
+
+      if (event.photoFile != null) {
+        final url = await storageHelper.uploadPhoto(event.photoFile!, newId);
+        event.contact.id = newId;
+        event.contact.photoPath = url;
+        await repo.updateContact(event.contact);
+      }
+
+      final contacts = await repo.getContacts();
       emit(ContactLoaded(contacts));
     });
 
     on<UpdateContact>((event, emit) async {
-      await dbHelper.updateContact(event.contact);
-      final contacts = await dbHelper.getContacts();
+      await repo.updateContact(event.contact);
+      final contacts = await repo.getContacts();
       emit(ContactLoaded(contacts));
     });
 
     on<DeleteContact>((event, emit) async {
-      await dbHelper.deleteContact(event.id);
-      final contacts = await dbHelper.getContacts();
+      await repo.deleteContact(event.id);
+      final contacts = await repo.getContacts();
       emit(ContactLoaded(contacts));
     });
 
     on<ToggleFavorite>((event, emit) async {
       event.contact.isFavorite = !event.contact.isFavorite;
-      await dbHelper.updateContact(event.contact);
-      final contacts = await dbHelper.getContacts();
+      await repo.updateContact(event.contact);
+      final contacts = await repo.getContacts();
       emit(ContactLoaded(contacts));
     });
   }

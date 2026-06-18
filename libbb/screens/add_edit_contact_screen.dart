@@ -5,7 +5,6 @@ import 'package:image_picker/image_picker.dart';
 import '../bloc/contact_bloc.dart';
 import '../bloc/contact_event.dart';
 import '../models/contact.dart';
-import '../repository/storage_helper.dart';
 import '../widgets/contact_avatar.dart';
 
 class AddEditContactScreen extends StatefulWidget {
@@ -19,13 +18,10 @@ class AddEditContactScreen extends StatefulWidget {
 
 class _AddEditContactScreenState extends State<AddEditContactScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _storageHelper = StorageHelper();
   late TextEditingController nameCtrl;
   late TextEditingController phoneCtrl;
   late TextEditingController emailCtrl;
   String? photoPath;
-  File? pickedImageFile;
-  bool isSaving = false;
 
   bool get isEditing => widget.contact != null;
 
@@ -76,52 +72,32 @@ class _AddEditContactScreenState extends State<AddEditContactScreen> {
 
     if (picked != null) {
       setState(() {
-        pickedImageFile = File(picked.path);
+        photoPath = picked.path;
       });
     }
   }
 
-  Future<void> saveContact() async {
+  void saveContact() {
     if (!_formKey.currentState!.validate()) return;
 
-    setState(() => isSaving = true);
-
-    try {
-      if (isEditing) {
-        final updated = widget.contact!;
-        updated.name = nameCtrl.text.trim();
-        updated.phone = phoneCtrl.text.trim();
-        updated.email = emailCtrl.text.trim();
-
-        if (pickedImageFile != null) {
-          final url =
-              await _storageHelper.uploadPhoto(pickedImageFile!, updated.id!);
-          updated.photoPath = url;
-        }
-
-        context.read<ContactBloc>().add(UpdateContact(updated));
-      } else {
-        final newContact = Contact(
-          name: nameCtrl.text.trim(),
-          phone: phoneCtrl.text.trim(),
-          email: emailCtrl.text.trim(),
-        );
-
-        context.read<ContactBloc>().add(
-              AddContact(newContact, photoFile: pickedImageFile),
-            );
-      }
-
-      if (mounted) Navigator.pop(context);
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to save contact: $e')),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => isSaving = false);
+    if (isEditing) {
+      final updated = widget.contact!;
+      updated.name = nameCtrl.text.trim();
+      updated.phone = phoneCtrl.text.trim();
+      updated.email = emailCtrl.text.trim();
+      updated.photoPath = photoPath;
+      context.read<ContactBloc>().add(UpdateContact(updated));
+    } else {
+      final newContact = Contact(
+        name: nameCtrl.text.trim(),
+        phone: phoneCtrl.text.trim(),
+        email: emailCtrl.text.trim(),
+        photoPath: photoPath,
+      );
+      context.read<ContactBloc>().add(AddContact(newContact));
     }
+
+    Navigator.pop(context);
   }
 
   @override
@@ -132,7 +108,7 @@ class _AddEditContactScreenState extends State<AddEditContactScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.check),
-            onPressed: isSaving ? null : saveContact,
+            onPressed: saveContact,
           ),
         ],
       ),
@@ -146,24 +122,18 @@ class _AddEditContactScreenState extends State<AddEditContactScreen> {
                 onTap: pickImage,
                 child: Stack(
                   children: [
-                    pickedImageFile != null
-                        ? CircleAvatar(
-                            radius: 50,
-                            backgroundImage: FileImage(pickedImageFile!),
-                          )
-                        : ContactAvatar(
-                            name: nameCtrl.text.isEmpty ? '?' : nameCtrl.text,
-                            photoPath: photoPath,
-                            radius: 50,
-                          ),
+                    ContactAvatar(
+                      name: nameCtrl.text.isEmpty ? '?' : nameCtrl.text,
+                      photoPath: photoPath,
+                      radius: 50,
+                    ),
                     Positioned(
                       bottom: 0,
                       right: 0,
                       child: CircleAvatar(
                         radius: 16,
                         backgroundColor: Theme.of(context).primaryColor,
-                        child: const Icon(Icons.camera_alt,
-                            size: 16, color: Colors.white),
+                        child: const Icon(Icons.camera_alt, size: 16, color: Colors.white),
                       ),
                     ),
                   ],
@@ -172,50 +142,29 @@ class _AddEditContactScreenState extends State<AddEditContactScreen> {
               const SizedBox(height: 24),
               TextFormField(
                 controller: nameCtrl,
-                decoration: const InputDecoration(
-                    labelText: 'Name', prefixIcon: Icon(Icons.person)),
-                validator: (val) => (val == null || val.trim().isEmpty)
-                    ? 'Name is required'
-                    : null,
+                decoration: const InputDecoration(labelText: 'Name', prefixIcon: Icon(Icons.person)),
+                validator: (val) => (val == null || val.trim().isEmpty) ? 'Name is required' : null,
               ),
               const SizedBox(height: 16),
               TextFormField(
                 controller: phoneCtrl,
                 keyboardType: TextInputType.phone,
-                decoration: const InputDecoration(
-                    labelText: 'Phone', prefixIcon: Icon(Icons.phone)),
-                validator: (val) => (val == null || val.trim().isEmpty)
-                    ? 'Phone number is required'
-                    : null,
+                decoration: const InputDecoration(labelText: 'Phone', prefixIcon: Icon(Icons.phone)),
+                validator: (val) => (val == null || val.trim().isEmpty) ? 'Phone number is required' : null,
               ),
               const SizedBox(height: 16),
               TextFormField(
                 controller: emailCtrl,
                 keyboardType: TextInputType.emailAddress,
-                decoration: const InputDecoration(
-                    labelText: 'Email', prefixIcon: Icon(Icons.email)),
+                decoration: const InputDecoration(labelText: 'Email', prefixIcon: Icon(Icons.email)),
               ),
               const SizedBox(height: 24),
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: isSaving ? null : saveContact,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.deepPurple.shade400,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(24),
-                    ),
-                  ),
-                  child: isSaving
-                      ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(
-                              strokeWidth: 2, color: Colors.white),
-                        )
-                      : Text(isEditing ? 'Save Changes' : 'Add Contact'),
+                  onPressed: saveContact,
+                  style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 14)),
+                  child: Text(isEditing ? 'Save Changes' : 'Add Contact'),
                 ),
               ),
             ],

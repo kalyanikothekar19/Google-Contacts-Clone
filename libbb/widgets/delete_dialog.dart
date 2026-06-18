@@ -5,7 +5,7 @@ Future<bool> showDeleteConfirmation(BuildContext context, String name) async {
     context: context,
     builder: (ctx) => AlertDialog(
       title: const Text('Delete contact?'),
-      content: Text('Are you sure you want to delete $name? It will permanently delete the contact.'),
+      content: Text('Are you sure you want to delete $name? This cannot be undone.'),
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(ctx, false),

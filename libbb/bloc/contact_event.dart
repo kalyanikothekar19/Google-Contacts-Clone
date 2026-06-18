@@ -1,4 +1,3 @@
-import 'dart:io';
 import '../models/contact.dart';
 
 abstract class ContactEvent {}
@@ -7,8 +6,7 @@ class LoadContacts extends ContactEvent {}
 
 class AddContact extends ContactEvent {
   final Contact contact;
-  final File? photoFile;
-  AddContact(this.contact, {this.photoFile});
+  AddContact(this.contact);
 }
 
 class UpdateContact extends ContactEvent {
@@ -17,7 +15,7 @@ class UpdateContact extends ContactEvent {
 }
 
 class DeleteContact extends ContactEvent {
-  final String id;
+  final int id;
   DeleteContact(this.id);
 }
 

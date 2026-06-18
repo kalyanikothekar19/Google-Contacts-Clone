@@ -1,5 +1,5 @@
 class Contact {
-  String? id;
+  int? id;
   String name;
   String phone;
   String email;
@@ -17,22 +17,23 @@ class Contact {
 
   Map<String, dynamic> toMap() {
     return {
+      'id': id,
       'name': name,
       'phone': phone,
       'email': email,
       'photoPath': photoPath,
-      'isFavorite': isFavorite,
+      'isFavorite': isFavorite ? 1 : 0,
     };
   }
 
-  factory Contact.fromMap(String id, Map<String, dynamic> map) {
+  factory Contact.fromMap(Map<String, dynamic> map) {
     return Contact(
-      id: id,
-      name: map['name'] ?? '',
-      phone: map['phone'] ?? '',
+      id: map['id'],
+      name: map['name'],
+      phone: map['phone'],
       email: map['email'] ?? '',
       photoPath: map['photoPath'],
-      isFavorite: map['isFavorite'] ?? false,
+      isFavorite: map['isFavorite'] == 1,
     );
   }
 }
